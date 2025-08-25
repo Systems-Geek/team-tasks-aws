@@ -1,28 +1,77 @@
-provider "aws" { region = var.region }
-resource "aws_key_pair" "deployer" {
-  key_name   = "team-tasks-key"
-  public_key = var.public_key_openssh
+provider "aws" {
+  region = "ap-south-1" # adjust if needed
 }
-resource "aws_security_group" "app_sg" {
-  name = "team-tasks-sg"
-  description = "Allow HTTP and SSH"
-  ingress { from_port=22 to_port=22 protocol="tcp" cidr_blocks=["0.0.0.0/0"] }
-  ingress { from_port=80 to_port=80 protocol="tcp" cidr_blocks=["0.0.0.0/0"] }
-  egress { from_port=0 to_port=0 protocol="-1" cidr_blocks=["0.0.0.0/0"] }
+
+# Fetch default VPC
+data "aws_vpc" "default" {
+  default = true
 }
-resource "aws_instance" "app" {
-  ami = "ami-0e86e20dae9224db8" # Ubuntu 22.04 in ap-south-1
-  instance_type = "t3.micro"
-  key_name = aws_key_pair.deployer.key_name
-  vpc_security_group_ids = [aws_security_group.app_sg.id]
-  user_data = <<-EOF
-              #!/bin/bash
-              apt-get update
-              apt-get install -y docker.io
-              systemctl enable docker
-              systemctl start docker
-              EOF
-  tags = { Name = "team-tasks-app" }
+
+# 🌐 Security Group for Web Server
+resource "aws_security_group" "web_sg" {
+  name        = "web-sg"
+  description = "Allow SSH, HTTP, HTTPS"
+  vpc_id      = data.aws_vpc.default.id   # 🔹 replace with your default VPC ID
+
+  ingress {
+    description = "SSH"
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    description = "HTTP"
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    description = "HTTPS"
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
 }
-resource "aws_eip" "app_ip" { instance = aws_instance.app.id }
-output "public_ip" { value = aws_eip.app_ip.public_ip }
+
+# 💻 EC2 Instance
+resource "aws_instance" "web" {
+  ami           = "ami-08e5424edfe926b43"  # Ubuntu 22.04 in ap-south-1 (Mumbai) ✅
+  instance_type = "t2.micro"
+  key_name      = "web-key"                 # 🔹 existing key in AWS
+  vpc_security_group_ids = [aws_security_group.web_sg.id]
+
+  tags = {
+    Name = "Terraform-Web-Server"
+  }
+}
+
+# 📡 Elastic IP
+resource "aws_eip" "web_eip" {
+  instance = aws_instance.web.id
+#  vpc      = true
+}
+
+# 📤 Outputs
+output "instance_id" {
+  value = aws_instance.web.id
+}
+
+output "instance_public_ip" {
+  value = aws_eip.web_eip.public_ip
+}
+
+output "security_group_id" {
+  value = aws_security_group.web_sg.id
+}
