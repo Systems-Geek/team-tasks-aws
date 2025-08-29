@@ -33,7 +33,7 @@ jobs:
           context: .
           push: true
           tags: |
-            ghcr.io/systems-geek/team-tasks-aws:latest/team-tasks-aws:latest
+            ghcr.io/systems-geek/team-tasks-aws:latest
             ghcr.io/systems-geek/team-tasks-aws:${{ github.sha }}
 
       # Deploy to EC2
