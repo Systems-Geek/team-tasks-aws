@@ -2,9 +2,12 @@ name: Deploy to EC2
 
 on:
   push:
-    branches:
-      - main
-  workflow_dispatch:
+    branches: ["main"]
+  workflow_dispatch: # manual trigger
+
+permissions:
+  contents: read
+  packages: write
 
 jobs:
   build-and-deploy:
@@ -13,7 +16,7 @@ jobs:
     steps:
       # Checkout repo
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       # Log in to GitHub Container Registry
       - name: Log in to GHCR
@@ -24,14 +27,16 @@ jobs:
           password: ${{ secrets.GHCR_PAT }}
 
       # Build and push Docker image
-      - name: Build & Push Docker image
-        run: |
-          IMAGE_NAME=ghcr.io/${{ github.repository_owner }}/team-tasks-aws:latest
-          echo "Building and pushing $IMAGE_NAME"
-          docker build -t $IMAGE_NAME .
-          docker push $IMAGE_NAME
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/team-tasks-aws:latest
+            ghcr.io/${{ github.repository_owner }}/team-tasks-aws:${{ github.sha }}
 
-      # Deploy on EC2 using SSH
+      # Deploy to EC2
       - name: Deploy to EC2
         uses: appleboy/ssh-action@v1.2.0
         with:
@@ -39,18 +44,28 @@ jobs:
           username: ${{ secrets.VM_USER }}
           key: ${{ secrets.VM_SSH_KEY }}
           port: ${{ secrets.VM_SSH_PORT }}
+          timeout: 30s
           script: |
+            set -euo pipefail
+            IMAGE=ghcr.io/${{ github.repository_owner }}/team-tasks-aws:latest
+
+            # ensure docker present
+            docker --version || (sudo apt-get update && sudo apt-get install -y docker.io && sudo systemctl enable --now docker)
+
             echo "Pulling latest Docker image..."
-            docker login ghcr.io -u ${{ github.actor }} -p ${{ secrets.GHCR_PAT }}
-            docker pull ghcr.io/${{ github.repository_owner }}/team-tasks-aws:latest
+            echo ${{ secrets.GHCR_PAT }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+            docker pull $IMAGE
 
             echo "Stopping old container..."
             docker stop team-tasks-aws || true
             docker rm team-tasks-aws || true
 
             echo "Running new container..."
-            docker run -d --name team-tasks-aws \
+            docker run -d --name team-tasks-aws --restart unless-stopped \
               -p 80:3000 \
               -e SUPABASE_URL=${{ secrets.SUPABASE_URL }} \
               -e SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }} \
-              ghcr.io/${{ github.repository_owner }}/team-tasks-aws:latest
+              $IMAGE
+
+            echo "Deployed successfully!"
+            docker ps -a
