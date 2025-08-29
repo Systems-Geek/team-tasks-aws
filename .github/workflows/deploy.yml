@@ -47,7 +47,7 @@ jobs:
           timeout: 30s
           script: |
             set -euo pipefail
-            IMAGE=ghcr.io/${{ github.repository_owner }}/team-tasks-aws:latest
+            IMAGE=ghcr.io/${{ github.repository_owner.toLowerCase() }}/team-tasks-aws:latest
 
             # ensure docker present
             docker --version || (sudo apt-get update && sudo apt-get install -y docker.io && sudo systemctl enable --now docker)
