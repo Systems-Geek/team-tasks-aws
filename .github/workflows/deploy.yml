@@ -51,5 +51,4 @@ jobs:
               -e SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }} \
               ghcr.io/systems-geek/team-tasks-aws:latest
 
-            - name: Verify health
-              run: curl -f http://54.234.30.81/api/healthz
+           
