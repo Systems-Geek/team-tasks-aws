@@ -1,4 +1,4 @@
-🧩 Team Tasks — DevOps Take-Home Project
+🧩 Team Tasks AWS —  𝗘𝗻𝗱-𝘁𝗼-𝗘𝗻𝗱 𝗗𝗲𝘃𝗢𝗽𝘀 𝗜𝗺𝗽𝗹𝗲𝗺𝗲𝗻𝘁𝗮𝘁𝗶𝗼𝗻
 
 This project demonstrates a complete end-to-end DevOps workflow — from development to automated deployment — using Next.js, Supabase, Docker, Terraform, and GitHub Actions.
 
