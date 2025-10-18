@@ -4,6 +4,13 @@ This project demonstrates a complete end-to-end DevOps workflow — from develop
 
 The goal was to design a small, production-ready web application and deploy it securely on the cloud with full CI/CD automation.
 
+## 🧭 Architecture Diagram
+
+<p align="center">
+  <img src="Generated Image October 18, 2025 - 11_37AM (1).png" 
+       alt="End-to-End Deployment: Supabase to AWS EC2 via GitHub Actions" width="800"/>
+</p>
+
 🚀 Overview
 
 Team Tasks is a minimal authenticated task management app where each user can securely create, view, and manage their own tasks.
